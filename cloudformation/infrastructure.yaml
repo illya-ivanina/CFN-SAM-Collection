@@ -1,0 +1,55 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: "A CFN template from jcolemorrison"
+Metadata:
+  Author: !Ref ParamAuthorName
+Parameters:
+  ParamAuthorName:
+    Type: String
+    Default: "John Doe"
+    Description: "Owner of the CFN Template."
+  ParamAllowSSHFromRange:
+    Type: String
+    Default: "0.0.0.0/0"
+    Description: "IP CidrBlock to allow SSH access. i.e. 100.100.100.100/32"
+  ParamAllowSSHAccess:
+    Type: String
+    Default: "true"
+    AllowedValues: ["true", "false"]
+    Description: "Whether to allow SSH access into the EC2 server"
+Conditions:
+  AllowSSHAccess:
+    !Equals [!Ref ParamAllowSSHAccess, "true"]
+Resources:
+  SecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupName: "cfn-demo-sg"
+      GroupDescription: "Security group for SSH and HTTP access"
+      Tags:
+        -
+          Key: "purpose"
+          Value: "demo"
+        -
+          Key: "source"
+          Value: "jcolemorrison"
+      SecurityGroupIngress:
+        -
+          !If:
+            - AllowSSHAccess
+            -
+              CidrIp: !Ref ParamAllowSSHFromRange
+              FromPort: 22
+              IpProtocol: "tcp"
+              ToPort: 22
+            - !Ref AWS::NoValue
+        -
+          CidrIp: "0.0.0.0/0"
+          FromPort: 80
+          IpProtocol: "tcp"
+          ToPort: 80
+Outputs:
+  SecurityGroupId:
+    Description: "The ID of the security group"
+    Value: !GetAtt SecurityGroup.GroupId
+    Export:
+      Name: !Sub "${AWS::StackName}-SecurityGroupId"
